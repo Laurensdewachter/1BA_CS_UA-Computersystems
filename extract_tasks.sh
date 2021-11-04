@@ -10,3 +10,5 @@ cd $VAK
 mkdir $TAAK
 cd ..
 cd ..
+ARCHIVE=$(sed 's/\([^_]*_[^_]*_[^_]*_[^_]*_[^_]*\).tgz/\1/g' <<< $ARCHIVE)
+mv /$ARCHIVE/* /$VAK/$TAAK/
