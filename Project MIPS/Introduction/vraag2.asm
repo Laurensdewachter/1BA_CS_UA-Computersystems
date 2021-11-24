@@ -20,7 +20,7 @@ loop:
 	# Print newline
 	li $v0 4
 	la $a0 newline
-    syscall
+    	syscall
 	
 	# add to counter and to number
 	addi $t2 $t2 1
