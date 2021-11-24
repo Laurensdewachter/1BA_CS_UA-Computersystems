@@ -2,9 +2,10 @@
 	.eqv LAST_CASE_NUM_PLUS1_TIMES4 12
 	
 	.data
+	
 	.align 2
 	
-jumpTbl:.word LAST_CASE_NUM_PLUS1_TIMES4
+jumpTbl:.space LAST_CASE_NUM_PLUS1_TIMES4
 expr_value:	.word 1
 result:	.word 0
 
@@ -33,17 +34,16 @@ result:	.word 0
 	jr $t2
 	
 case0:
-	addi $s1 $s1 9
+	li $s1 9
 	j endSwitch
 case1:
-	addi $s1 $s1 6
-	j endSwitch
+	li $s1 6
 
 case2:
-	addi $s1 $s1 8
+	li $s1 8
 	j endSwitch
 default:
-	addi $s1 $s1 7
+	li $s1 7
 	j endSwitch
 endSwitch:
 	li $v0 1
