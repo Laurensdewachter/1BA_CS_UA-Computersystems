@@ -44,9 +44,10 @@ bar2:
 	li $t0 0
 	li $t1 30
 	mul $t2 $t1 4
+	addi $t2 $t2 4
 	
 loopYellow2:
-	beq $t0 $t1 exit
+	beq $t0 $t1 bar3
 	# Add 1 to loop
 	addi $t0 $t0 1
 	# Make yellow
@@ -57,6 +58,24 @@ loopYellow2:
 	sw $s2 0($s0)
 	# Move to next row
 	addi $s0 $s0 4
+	
+	j loopYellow2
+	
+bar3:
+	li $t0 0
+	li $t1 32
+
+loopYellow3:
+	beq $t0 $t1 exit
+	# Add 1 to loop
+	addi $t0 $t0 1
+	# Make yellow
+	sw $s2 0($s0)
+	# Move adress
+	addi $s0 $s0 4
+	
+	j loopYellow3
+	
 
 exit:
 	li $v0 10
