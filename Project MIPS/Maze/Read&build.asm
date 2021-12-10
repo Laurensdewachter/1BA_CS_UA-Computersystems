@@ -1,6 +1,7 @@
 .data
 fin:	.asciiz "/home/laurens/Desktop/Systemen/Project MIPS/Maze/input.txt"
 	.align 2
+finw:	.asciiz "C:/Users/Laurens/Documents/UA/Informatica/SEM1/CSA/Systemen/Project MIPS/Maze/input.txt"
 buffer:	.space 2048
 
 .globl main
@@ -8,7 +9,7 @@ buffer:	.space 2048
 .text
 # Starting point
 main:
-	la 	$s0, fin	# load file name adress
+	la 	$s0, finw	# load file name adress
 	la 	$s1, buffer	# load buffer adress
 	li	$s2, 2048	# load buffer size
 	
@@ -65,7 +66,7 @@ read_file:
 determine_width_height:
 	# Determine width
 	li	$t0, 0		# set $t0 as counter
-	move 	$t1, $s0	# copy buffer location
+	move 	$t1, $s0	# copy buffer location as "pointer"
 width:
 	lb	$t2, 0($t1)	# load character
 	beq	$t2, 10, width_end	# check if the character is a newline
@@ -76,7 +77,7 @@ width:
 width_end:
 	move	$s1, $t0	# save width to $s1
 	li	$t0, 0		# set $t0 as counter
-	move 	$t1, $s0	# copy buffer location
+	move 	$t1, $s0	# copy buffer location as "pointer"
 height:
 	lb	$t2, ($t1)	# load next character
 	beq	$t2, 0, height_end	# check if the character is not zero
@@ -91,7 +92,7 @@ height_end:
 	addi	$t0, $t0, 1	# count the final row
 	move	$s2, $t0	# store height to $s2
 
-	move	$t0, $s0	# load buffer adress to $t0
+	move	$t0, $s0	# load buffer adress to $t0 as "pointer"
 	move	$s3, $gp	# load the bitmap pointer to "s3"
 	li	$t2, 0x0000FF	# load blue to $t2
 	li	$t3, 0x000000	# load black to $t3
@@ -101,7 +102,7 @@ height_end:
 	li	$t7, 0xFFFFFF	# load white to $t7
 	
 color:
-	lb	$t1, $t0	# load byte to $t1
+	lb	$t1, ($t0)	# load byte to $t1
 	addi	$t0, $t0, 1	# add 1 to "buffer pointer"
 	
 	beq	$t1, 119, wall	# check if the character is a "w"
@@ -109,19 +110,34 @@ color:
 	beq	$t1, 115, player	# check if the character is a "s"
 	beq	$t1, 117, exit	# check if the character is a "u"
 	beq	$t1, 101, enemy	# check if the character is a "e"
-	beq	$t1, 99, cany	# check if the character is a "c"
+	beq	$t1, 99, candy	# check if the character is a "c"
+	beq	$t1, 10, color	# to prevent the loop ending at endline
 	j	color_end
 	
 wall:
-	sw	$t2, ($s3)	# place blue value at the bitmap "pointer"
-	addi	$s3, $s3, 1	# move bitmap "pointer"
+	sw	$t2, 0($s3)	# place blue value at the bitmap "pointer"
+	addi	$s3, $s3, 4	# move bitmap "pointer"
 	j	color
 passage:
-	sw	$t2, ($s3)	# place black value at the bitmap "pointer"
-	addi	$s3, $s3, 1	# move bitmap "pointer"
+	sw	$t3, 0($s3)	# place black value at the bitmap "pointer"
+	addi	$s3, $s3, 4	# move bitmap "pointer"
 	j	color
 player:
-	
+	sw	$t4, 0($s3)	# place yellow value at the bitmap "pointer"
+	addi	$s3, $s3, 4	# move bitmap "pointer"
+	j	color
+exit:
+	sw	$t5, 0($s3)	# place green value at the bitmap "pointer"
+	addi	$s3, $s3, 4	# move bitmap "pointer"
+	j	color
+enemy:
+	sw	$t6, 0($s3)	# place red value at the bitmap "pointer"
+	addi	$s3, $s3, 4	# move bitmap "pointer"
+	j	color
+candy:
+	sw	$t7, 0($s3)	# place white value at the bitmap "pointer"
+	addi	$s3, $s3, 4	# move bitmap "pointer"
+	j	color
 color_end:
 	lw	$ra, -4($fp)
 	jr	$ra
