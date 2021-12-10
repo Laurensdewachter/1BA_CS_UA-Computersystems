@@ -1,6 +1,8 @@
 .data
 fin:	.asciiz "/home/laurens/Desktop/Systemen/Project MIPS/Maze/input.txt"
 	.align 2
+finw:	.asciiz "C:/Users/Laurens/Documents/UA/Informatica/SEM1/CSA/Systemen/Project MIPS/Maze/input2.txt"
+	.align 2
 buffer:	.space 2048
 
 .globl main
@@ -8,7 +10,7 @@ buffer:	.space 2048
 .text
 # Starting point
 main:
-	la 	$s0, fin	# load file name adress
+	la 	$s0, finw	# load file name adress
 	la 	$s1, buffer	# load buffer adress
 	li	$s2, 2048	# load buffer size
 	
@@ -26,13 +28,14 @@ main:
 create:
 	sw	$fp, 0($sp)	# push old frame pointer (dynamic link)
 	move	$fp, $sp	# frame	pointer now points to the top of the stack
-	subu	$sp, $sp, 28	# allocate 28 bytes on the stack
+	subu	$sp, $sp, 32	# allocate 28 bytes on the stack
 	sw	$ra, -4($fp)	# store the value of the return address
 	sw	$v0, -8($fp)	# static link
 	sw	$s0, -12($fp)	# save locally used registers
 	sw	$s1, -16($fp)
 	sw	$s2, -20($fp)
 	sw	$s3, -24($fp)
+	sw	$s4, -28($fp)
 
 # Procedure to read a file
 read_file:
@@ -68,6 +71,7 @@ determine_width_height:
 	move 	$t1, $s0	# copy buffer location as "pointer"
 width:
 	lb	$t2, 0($t1)	# load character
+	beq	$t2, 13, width_end	# to make compatible with windows which has a carriage return (ascii-code 13) before the endline
 	beq	$t2, 10, width_end	# check if the character is a newline
 	addi	$t0, $t0, 1	# add 1 to counter
 	addi	$t1, $t1, 1	# move to next character
@@ -114,7 +118,7 @@ color:
 	beq	$t1, 99, candy	# check if the character is a "c"
 	beq	$t1, 13, color	# to make compatible with windows which has a carriage return (ascii-code 13) before the endline
 	beq	$t1, 10, color	# to prevent the loop ending at endline
-	j	color_end
+	j	location
 	
 wall:
 	sw	$t2, 0($s3)	# place blue value at the bitmap "pointer"
@@ -140,6 +144,37 @@ candy:
 	sw	$t7, 0($s3)	# place white value at the bitmap "pointer"
 	addi	$s3, $s3, 4	# move bitmap "pointer"
 	j	color
-color_end:
-	lw	$ra, -4($fp)
+# The maze is now build
+
+# Procedure to determine the players location
+location:
+	li	$t0, 0		# set up a counter in $t0
+	move	$t1, $s0	# load buffer adress to $t1 as "pointer"
+	
+location_loop:
+	lb	$t2, ($t1)	# load character to $t2
+	addi	$t1, $t1, 1	# add 1 to buffer "pointer"
+	addi	$t0, $t0, 1	# add 1 to counter
+	beq	$t2, 115, location_end	# check if character is a "s"
+	j location_loop
+	
+location_end:
+	div	$t0, $s1	# divide counter by width
+	mfhi	$t0		# get the quotiënt
+	mflo	$t1		# get the remainder, which is the column
+	addi	$t0, $t0, 1	# add 1 to $t0 to get the row
+	move	$s3, $t0	# store row in $s3
+	move	$s4, $t1	# store column in $s4
+
+# Restore all registers to end the function
+return:
+	lw	$s4, -28($fp)	# restore locally used registers
+	lw	$s3, -24($fp)
+	lw	$s2, -20($fp)
+	lw	$s1, -16($fp)
+	lw	$s0, -12($fp)
+	lw	$v0, -8($fp)	# restore static link
+	lw	$ra, -4($fp)	# restore return adress
+	move	$sp, $fp	# get old frame pointer from current frame
+	lw	$fp, ($sp)	# restore old frame pointer
 	jr	$ra
