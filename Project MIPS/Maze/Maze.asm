@@ -14,21 +14,26 @@ main:
 	la 	$s1, buffer	# load buffer adress
 	li	$s2, 2048	# load buffer size
 	
-	subu	$sp, $sp, 12	# adjust stack for 3 items
-	sw	$s2, 12($sp)	# push buffer size to stack
-	sw	$s1, 8($sp)	# push buffer adress to stack
-	sw	$s0, 4($sp)	# push file name adress to stack
+	subu	$sp, $sp, 20	# adjust stack for 3 arguments and 2 return values
+	sw	$s2, 20($sp)	# push buffer size to stack
+	sw	$s1, 16($sp)	# push buffer adress to stack
+	sw	$s0, 12($sp)	# push file name adress to stack
 	
 	jal	create
+	
+	lw	$s0, 4($sp)	# get player position row from stack
+	lw	$s1, 8($sp)	# get player position column from stack
+	addi	$sp, $sp, 8	# Adjust stack pointer for 2 items
 	
 	li	$v0, 10		# system call for returning to os
 	syscall
 	
+###################################################################################################
 # Procedure to create a bitmap maze based on a .txt file
 create:
 	sw	$fp, 0($sp)	# push old frame pointer (dynamic link)
 	move	$fp, $sp	# frame	pointer now points to the top of the stack
-	subu	$sp, $sp, 32	# allocate 28 bytes on the stack
+	subu	$sp, $sp, 32	# allocate 32 bytes on the stack
 	sw	$ra, -4($fp)	# store the value of the return address
 	sw	$v0, -8($fp)	# static link
 	sw	$s0, -12($fp)	# save locally used registers
@@ -40,9 +45,9 @@ create:
 # Procedure to read a file
 read_file:
 	# Load arguments to registers
-	lw	$s1, 4($fp)	# load file name adress to $s0
-	lw	$s0, 8($fp)	# load buffer adress to $s1
-	lw	$s2, 12($fp)	# load buffer size to $s2
+	lw	$s1, 12($fp)	# load file name adress to $s0
+	lw	$s0, 16($fp)	# load buffer adress to $s1
+	lw	$s2, 20($fp)	# load buffer size to $s2
 	
 	# Open file
 	li 	$v0, 13		# system call for opening files
@@ -64,7 +69,7 @@ read_file:
 	move	$a0, $s3	# file descriptor to close
 	syscall			# close file
 	
-# Procedure 
+# Procedure to determine the width and height of the maze
 determine_width_height:
 	# Determine width
 	li	$t0, 0		# set $t0 as counter
@@ -168,6 +173,8 @@ location_end:
 
 # Restore all registers to end the function
 return:
+	sw	$s4, 8($fp)	# Store player position column on stack as return value
+	sw	$s3, 4($fp)	# Store player position row on stack as return value
 	lw	$s4, -28($fp)	# restore locally used registers
 	lw	$s3, -24($fp)
 	lw	$s2, -20($fp)
@@ -178,3 +185,16 @@ return:
 	move	$sp, $fp	# get old frame pointer from current frame
 	lw	$fp, ($sp)	# restore old frame pointer
 	jr	$ra
+###################################################################################################
+
+###################################################################################################
+# Procedure to update the players position
+player_position:
+	sw	$fp, 0($sp)	# push old frame pointer (dynamic link)
+	move	$fp, $sp	# frame	pointer now points to the top of the stack
+	subu	$sp, $sp, 16	# allocate ## bytes on the stack
+	sw	$ra, -4($fp)	# store the value of the return address
+	sw	$v0, -8($fp)	# static link
+	sw	$s0, -12($fp)	# save locally used registers
+	
+	
