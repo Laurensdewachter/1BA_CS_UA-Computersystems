@@ -175,6 +175,7 @@ location_end:
 return:
 	sw	$s4, 8($fp)	# Store player position column on stack as return value
 	sw	$s3, 4($fp)	# Store player position row on stack as return value
+	
 	lw	$s4, -28($fp)	# restore locally used registers
 	lw	$s3, -24($fp)
 	lw	$s2, -20($fp)
@@ -192,9 +193,17 @@ return:
 player_position:
 	sw	$fp, 0($sp)	# push old frame pointer (dynamic link)
 	move	$fp, $sp	# frame	pointer now points to the top of the stack
-	subu	$sp, $sp, 16	# allocate ## bytes on the stack
+	subu	$sp, $sp, 26	# allocate ## bytes on the stack
 	sw	$ra, -4($fp)	# store the value of the return address
 	sw	$v0, -8($fp)	# static link
 	sw	$s0, -12($fp)	# save locally used registers
+	sw	$s1, -16($fp)
+	sw	$s2, -20($fp)
+	sw	$s3, -24($fp)
 	
+	lw	$s0, 4($fp)	# load player position
+	lw	$s1, 8($fp)
+	lw	$s2, 12($fp)	# load new position
+	lw	$s3, 16($fp)
 	
+check_possibility:
