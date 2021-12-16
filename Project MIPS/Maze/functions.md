@@ -20,4 +20,7 @@
     $v1: new player column location
 
 > Arguments:
-    $a0: 
+    4($fp): current player row
+    8($fp): current player column
+    12($fp): new player row
+    16($fp): new player column

@@ -10,7 +10,7 @@ buffer:	.space 2048
 .text
 # Starting point
 main:
-	la 	$s0, finw	# load file name adress
+	la 	$s0, fin	# load file name adress
 	la 	$s1, buffer	# load buffer adress
 	li	$s2, 2048	# load buffer size
 	
@@ -165,7 +165,7 @@ location_loop:
 	
 location_end:
 	div	$t0, $s1	# divide counter by width
-	mfhi	$t0		# get the quotiënt
+	mfhi	$t0		# get the quotiÃ«nt
 	mflo	$t1		# get the remainder, which is the column
 	addi	$t0, $t0, 1	# add 1 to $t0 to get the row
 	move	$s3, $t0	# store row in $s3
