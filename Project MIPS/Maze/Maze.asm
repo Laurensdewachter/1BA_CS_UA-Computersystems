@@ -4,6 +4,7 @@ fin:	.asciiz "/home/laurens/Desktop/Systemen/Project MIPS/Maze/input.txt"
 finw:	.asciiz "C:/Users/Laurens/Documents/UA/Informatica/SEM1/CSA/Systemen/Project MIPS/Maze/input2.txt"
 	.align 2
 buffer:	.space 2048
+width:	.space 4
 
 .globl main
 
@@ -25,6 +26,18 @@ main:
 	lw	$s1, 8($sp)	# get player position column from stack
 	addi	$sp, $sp, 8	# Adjust stack pointer for 2 items
 	
+	# TEMP
+	li	$s2, 1
+	li	$s3, 3
+	
+	subu	$sp, $sp, 16	# adjust stack for 4 arguments
+	sw	$s0, 4($sp)	# push player row to stack
+	sw	$s1, 8($sp)	# push player column to stack
+	sw	$s2, 12($sp)	# push new player row to stack
+	sw	$s3, 16($sp)	# push new player column to stack
+	
+	jal	player_position
+	
 	li	$v0, 10		# system call for returning to os
 	syscall
 	
@@ -33,7 +46,7 @@ main:
 create:
 	sw	$fp, 0($sp)	# push old frame pointer (dynamic link)
 	move	$fp, $sp	# frame	pointer now points to the top of the stack
-	subu	$sp, $sp, 32	# allocate 32 bytes on the stack
+	subu	$sp, $sp, 32	# allocate 28 bytes on the stack
 	sw	$ra, -4($fp)	# store the value of the return address
 	sw	$v0, -8($fp)	# static link
 	sw	$s0, -12($fp)	# save locally used registers
@@ -74,15 +87,17 @@ determine_width_height:
 	# Determine width
 	li	$t0, 0		# set $t0 as counter
 	move 	$t1, $s0	# copy buffer location as "pointer"
-width:
+width_create:
 	lb	$t2, 0($t1)	# load character
 	beq	$t2, 13, width_end	# to make compatible with windows which has a carriage return (ascii-code 13) before the endline
 	beq	$t2, 10, width_end	# check if the character is a newline
 	addi	$t0, $t0, 1	# add 1 to counter
 	addi	$t1, $t1, 1	# move to next character
-	j	width		# loop
+	j	width_create		# loop
 	
 width_end:
+	la	$t1, width	# load the adress for "width" in memory
+	sw	$t0, ($t1)	# save width to "width" in memory
 	move	$s1, $t0	# save width to $s1
 	li	$t0, 0		# set $t0 as counter
 	move 	$t1, $s0	# copy buffer location as "pointer"
@@ -159,22 +174,21 @@ location:
 location_loop:
 	lb	$t2, ($t1)	# load character to $t2
 	addi	$t1, $t1, 1	# add 1 to buffer "pointer"
-	addi	$t0, $t0, 1	# add 1 to counter
+	beq	$t2, 10, location_loop	# check if the character is a newline
+	beq	$t2, 13, location_loop	# check if the character is a carriage return
 	beq	$t2, 115, location_end	# check if character is a "s"
+	addi	$t0, $t0, 1	# add 1 to counter
 	j location_loop
 	
 location_end:
 	div	$t0, $s1	# divide counter by width
-	mfhi	$t0		# get the quotiënt
-	mflo	$t1		# get the remainder, which is the column
-	addi	$t0, $t0, 1	# add 1 to $t0 to get the row
-	move	$s3, $t0	# store row in $s3
-	move	$s4, $t1	# store column in $s4
+	mfhi	$s3		# store column in $s3
+	mflo	$s4		# store row in $s4
 
 # Restore all registers to end the function
 return:
-	sw	$s4, 8($fp)	# Store player position column on stack as return value
-	sw	$s3, 4($fp)	# Store player position row on stack as return value
+	sw	$s3, 8($fp)	# Store player position column on stack as return value
+	sw	$s4, 4($fp)	# Store player position row on stack as return value
 	
 	lw	$s4, -28($fp)	# restore locally used registers
 	lw	$s3, -24($fp)
@@ -186,6 +200,34 @@ return:
 	move	$sp, $fp	# get old frame pointer from current frame
 	lw	$fp, ($sp)	# restore old frame pointer
 	jr	$ra
+
+###################################################################################################
+
+###################################################################################################
+# Procedure to calculate the corresponding memory adress of a coordinate
+toMemAdress:
+	sw	$fp, 0($sp)	# push old frame pointer (dynamic link)
+	move	$fp, $sp	# frame	pointer now points to the top of the stack 
+	subu	$sp, $sp, 12	# allocate 8 bytes on the stack
+	sw	$ra, -4($fp)	# store the value of the return address
+	sw	$v0, -8($fp)	# static link
+	
+	la	$t0, width	# load the adress for "width" in memory
+	lw	$t1, ($t0)	# load width from "width-space" in memory
+	sll	$t1, $t1, 2	
+	
+	mul	$t0, $a0, $t1	# multiply the amount of rows with the width
+	sll	$t2, $a1, 2	# multiply the column by 4
+	add	$t0, $t0, $t2	# add the column
+	
+	add	$v1, $gp, $t0
+	
+	lw	$v0, -8($fp)	# restore static link
+	lw	$ra, -4($fp)	# restore return adress
+	move	$sp, $fp	# get old frame pointer from current frame
+	lw	$fp, ($sp)	# restore old frame pointer
+	jr	$ra
+
 ###################################################################################################
 
 ###################################################################################################
@@ -193,7 +235,7 @@ return:
 player_position:
 	sw	$fp, 0($sp)	# push old frame pointer (dynamic link)
 	move	$fp, $sp	# frame	pointer now points to the top of the stack
-	subu	$sp, $sp, 26	# allocate ## bytes on the stack
+	subu	$sp, $sp, 28	# allocate 24 bytes on the stack
 	sw	$ra, -4($fp)	# store the value of the return address
 	sw	$v0, -8($fp)	# static link
 	sw	$s0, -12($fp)	# save locally used registers
@@ -201,9 +243,59 @@ player_position:
 	sw	$s2, -20($fp)
 	sw	$s3, -24($fp)
 	
-	lw	$s0, 4($fp)	# load player position
-	lw	$s1, 8($fp)
-	lw	$s2, 12($fp)	# load new position
-	lw	$s3, 16($fp)
+	lw	$s0, 4($fp)	# load player row to $s0
+	lw	$s1, 8($fp)	# load player column to $s1
+	lw	$s2, 12($fp)	# load new row to $s2
+	lw	$s3, 16($fp)	# load new column to $s3
 	
 check_possibility:
+	move	$a0, $s2	# load new player row for toMemAdress
+	move	$a1, $s3	# load new player column for toMemAdress
+	
+	jal	toMemAdress	# call toMemAdress procedure
+	
+	li	$t0, 0x0000FF	# load the colour blue to $t0
+	lw	$t1, ($v1)	# load the colour at the new player location
+	beq	$t0, $t1 invalid_move	# if the new location is blue (wall) the move is invalid
+	
+move_player:
+	li	$t0, 0xFFFF00	# load yellow to $t0
+	sw	$t0, ($v1)	# store yellow at the new player loaction memory adress
+	
+	move	$a0, $s0	# load old player row for toMemAdress
+	move	$a1, $s1	# load old player column for toMemAdress
+	
+	jal	toMemAdress	# call toMemAdress procedure
+	
+	li	$t0, 0x000000	# load black to $t0
+	sw	$t0, ($v1)	# make to old player position black
+	
+	move	$v0, $s2	# store the new player row in $v0
+	move	$v1, $s3	# store the new player column in $v1
+	
+	j	player_position_return
+	
+invalid_move:
+	move	$v0, $s0	# load the current player row to $v0
+	move	$v1, $s1	# load the current player column to $v0
+
+player_position_return:
+	lw	$s4, -28($fp)	# restore locally used registers
+	lw	$s3, -24($fp)
+	lw	$s2, -20($fp)
+	lw	$s1, -16($fp)
+	lw	$s0, -12($fp)
+	lw	$ra, -4($fp)	# restore return adress
+	move	$sp, $fp	# get old frame pointer from current frame
+	lw	$fp, ($sp)	# restore old frame pointer
+	jr	$ra
+
+
+
+
+
+
+
+
+
+
