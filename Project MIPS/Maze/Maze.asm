@@ -1,3 +1,4 @@
+# Using WASD keyboard setup
 .data
 fin:	.asciiz "/home/laurens/Desktop/Systemen/Project MIPS/Maze/input.txt"
 	.align 2
@@ -5,6 +6,8 @@ finw:	.asciiz "C:/Users/Laurens/Documents/UA/Informatica/SEM1/CSA/Systemen/Proje
 	.align 2
 buffer:	.space 2048
 width:	.space 4
+end:	.space 8
+victory_msg:	.asciiz "Victory!"
 
 .globl main
 
@@ -22,21 +25,7 @@ main:
 	
 	jal	create
 	
-	lw	$s0, 4($sp)	# get player position row from stack
-	lw	$s1, 8($sp)	# get player position column from stack
-	addi	$sp, $sp, 8	# Adjust stack pointer for 2 items
-	
-	# TEMP
-	li	$s2, 1
-	li	$s3, 3
-	
-	subu	$sp, $sp, 16	# adjust stack for 4 arguments
-	sw	$s0, 4($sp)	# push player row to stack
-	sw	$s1, 8($sp)	# push player column to stack
-	sw	$s2, 12($sp)	# push new player row to stack
-	sw	$s3, 16($sp)	# push new player column to stack
-	
-	jal	player_position
+	jal	main_game
 	
 	li	$v0, 10		# system call for returning to os
 	syscall
@@ -138,7 +127,7 @@ color:
 	beq	$t1, 99, candy	# check if the character is a "c"
 	beq	$t1, 13, color	# to make compatible with windows which has a carriage return (ascii-code 13) before the endline
 	beq	$t1, 10, color	# to prevent the loop ending at endline
-	j	location
+	j	starting_position
 	
 wall:
 	sw	$t2, 0($s3)	# place blue value at the bitmap "pointer"
@@ -167,23 +156,46 @@ candy:
 # The maze is now build
 
 # Procedure to determine the players location
-location:
+starting_position:
 	li	$t0, 0		# set up a counter in $t0
 	move	$t1, $s0	# load buffer adress to $t1 as "pointer"
 	
-location_loop:
+starting_position_loop:
 	lb	$t2, ($t1)	# load character to $t2
 	addi	$t1, $t1, 1	# add 1 to buffer "pointer"
-	beq	$t2, 10, location_loop	# check if the character is a newline
-	beq	$t2, 13, location_loop	# check if the character is a carriage return
-	beq	$t2, 115, location_end	# check if character is a "s"
+	beq	$t2, 10, starting_position_loop	# check if the character is a newline
+	beq	$t2, 13, starting_position_loop	# check if the character is a carriage return
+	beq	$t2, 115, starting_position_end	# check if character is a "s"
 	addi	$t0, $t0, 1	# add 1 to counter
-	j location_loop
+	j starting_position_loop
 	
-location_end:
+starting_position_end:
 	div	$t0, $s1	# divide counter by width
 	mfhi	$s3		# store column in $s3
 	mflo	$s4		# store row in $s4
+
+# Procedure to determine the end location
+ending_position:
+	li	$t0, 0		# set up a counter in $t0
+	move	$t1, $s0	# load buffer adress to $t1 as "pointer"
+	
+ending_position_loop:
+	lb	$t2, ($t1)	# load character to $t2
+	addi	$t1, $t1, 1	# add 1 to buffer "pointer"
+	beq	$t2, 10, ending_position_loop	# check if the character is a newline
+	beq	$t2, 13, ending_position_loop	# check if the character is a carriage return
+	beq	$t2, 117, ending_position_end	# check if character is a "u"
+	addi	$t0, $t0, 1	# add 1 to counter
+	j ending_position_loop
+	
+ending_position_end:
+	div	$t0, $s1	# divide counter by width
+	mfhi	$t0		# store column in $s3
+	mflo	$t1		# store row in $s4
+	
+	la	$t2, end	# load adress to store end
+	sw	$t1, ($t2)	# store row
+	sw	$t0, 4($t2)	# store column
 
 # Restore all registers to end the function
 return:
@@ -200,7 +212,6 @@ return:
 	move	$sp, $fp	# get old frame pointer from current frame
 	lw	$fp, ($sp)	# restore old frame pointer
 	jr	$ra
-
 ###################################################################################################
 
 ###################################################################################################
@@ -213,7 +224,7 @@ toMemAdress:
 	sw	$v0, -8($fp)	# static link
 	
 	la	$t0, width	# load the adress for "width" in memory
-	lw	$t1, ($t0)	# load width from "width-space" in memory
+	lw	$t1, ($t0)	# load width from "width" in memory
 	sll	$t1, $t1, 2	
 	
 	mul	$t0, $a0, $t1	# multiply the amount of rows with the width
@@ -227,7 +238,6 @@ toMemAdress:
 	move	$sp, $fp	# get old frame pointer from current frame
 	lw	$fp, ($sp)	# restore old frame pointer
 	jr	$ra
-
 ###################################################################################################
 
 ###################################################################################################
@@ -289,7 +299,111 @@ player_position_return:
 	move	$sp, $fp	# get old frame pointer from current frame
 	lw	$fp, ($sp)	# restore old frame pointer
 	jr	$ra
+###################################################################################################
 
+###################################################################################################
+# Procedure to
+main_game:
+	sw	$fp, 0($sp)	# push old frame pointer (dynamic link)
+	move	$fp, $sp	# frame	pointer now points to the top of the stack
+	subu	$sp, $sp, 40	# allocate 36 bytes on the stack
+	sw	$ra, -4($fp)	# store the value of the return address
+	sw	$v0, -8($fp)	# static link
+	sw	$s0, -12($fp)	# save locally used registers
+	sw	$s1, -16($fp)
+	sw	$s2, -20($fp)
+	sw	$s3, -24($fp)
+	sw	$s4, -28($fp)
+	sw	$s5, -32($fp)
+	sw	$s6, -36($fp)
+	
+	li	$s0, 0xffff0000	# load input status adress to $s0
+	li	$s1, 0xffff0004	# load input adress to $s1
+	li	$s2, 0		# load 0 for comparison to $s2
+	
+	lw	$s3, 4($fp)	# load first player row
+	lw	$s4, 8($fp)	# load first player column
+	
+	la	$t0, end	# load end adress
+	lw	$s5, ($t0)	# load end row
+	lw	$s6, 4($t0)	# load end column
+	
+main_game_loop:
+	lw	$t0, ($s0)	# load input status
+	beq	$t0, $s2, sleep	# check if there has been input
+	
+	lw	$t0, ($s1)	# load input character to $t0
+	beq	$t0, 119, input_w	# check if input is "w"
+	beq	$t0, 115, input_s	# check if input is "s"
+	beq	$t0, 97, input_a	# check if input is "a"
+	beq	$t0, 100, input_d	# check if input is "d"
+	beq	$t0, 120, main_game_end	# check if input is "x"
+	j	sleep
+	
+input_w:
+	move	$t1, $s4	# store the column in $t0
+	subi	$t0, $s3, 1	# move the row down by 1 and store in $t1
+	j	change_position
+	
+input_s:
+	move	$t1, $s4	# store the column in $t0
+	addi	$t0, $s3, 1	# move to row up by 1 and store in $t1
+	j	change_position
+
+input_a:
+	move	$t0, $s3	# store the row in $t1
+	subi	$t1, $s4, 1	# move to column to the left by 1 and store in $t0
+	j	change_position
+
+input_d:
+	move	$t0, $s3	# store the row in $t1
+	addi	$t1, $s4, 1	# move the column to the right by 1 and store in $t0
+	j	change_position
+
+change_position:
+	subu	$sp, $sp, 16	# adjust stack pointer for 16 bytes
+	sw	$s3, 4($sp)	# store current player row
+	sw	$s4, 8($sp)	# store current player column
+	sw	$t0, 12($sp)	# store new player row
+	sw	$t1, 16($sp)	# store new player column
+	
+	jal	player_position
+	
+	move	$s3, $v0	# store (new) player row in $s3
+	move	$s4, $v1	# store (new) player column in $s4
+	
+check_victory:
+	seq	$t0, $s3, $s5	# compare new player row to end row
+	seq	$t1, $s4, $s6	# compare new player column to end column
+	add	$t0, $t0, $t1
+	beq	$t0, 2, victory
+	j	sleep
+	
+victory:
+	li	$v0, 4		# load the print string syscall value
+	la	$a0, victory_msg	# load the adress of the victory message in $a0
+	syscall
+	j	main_game_end
+	
+sleep:
+	li	$v0, 32		# Sleep
+	li	$a0, 60
+	syscall
+	
+	j	main_game_loop
+
+main_game_end:
+	lw	$s6, -36($fp)	# restore locally used registers
+	lw	$s5, -32($fp)
+	lw	$s4, -28($fp)
+	lw	$s3, -24($fp)
+	lw	$s2, -20($fp)
+	lw	$s1, -16($fp)
+	lw	$s0, -12($fp)
+	lw	$ra, -4($fp)	# restore return adress
+	move	$sp, $fp	# get old frame pointer from current frame
+	lw	$fp, ($sp)	# restore old frame pointer
+	jr	$ra
 
 
 

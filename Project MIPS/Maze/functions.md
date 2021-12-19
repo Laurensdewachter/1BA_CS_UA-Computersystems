@@ -32,3 +32,11 @@
     8($fp): current player column
     12($fp): new player row
     16($fp): new player column
+
+**main_game**
+> Return Values:
+    None
+
+> Arguments:
+    4($fp): first player row
+    8($fp): first player column
