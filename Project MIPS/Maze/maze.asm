@@ -33,16 +33,15 @@ main:
 ###################################################################################################
 # Procedure to create a bitmap maze based on a .txt file
 create:
-	sw	$fp, 0($sp)	# push old frame pointer (dynamic link)
+	sw	$fp, ($sp)	# push old frame pointer (dynamic link)
 	move	$fp, $sp	# frame	pointer now points to the top of the stack
-	subu	$sp, $sp, 32	# allocate 28 bytes on the stack
+	subu	$sp, $sp, 28	# allocate 28 bytes on the stack
 	sw	$ra, -4($fp)	# store the value of the return address
-	sw	$v0, -8($fp)	# static link
-	sw	$s0, -12($fp)	# save locally used registers
-	sw	$s1, -16($fp)
-	sw	$s2, -20($fp)
-	sw	$s3, -24($fp)
-	sw	$s4, -28($fp)
+	sw	$s0, -8($fp)	# save locally used registers
+	sw	$s1, -12($fp)
+	sw	$s2, -16($fp)
+	sw	$s3, -20($fp)
+	sw	$s4, -24($fp)
 
 # Procedure to read a file
 read_file:
@@ -202,12 +201,11 @@ return:
 	sw	$s3, 8($fp)	# Store player position column on stack as return value
 	sw	$s4, 4($fp)	# Store player position row on stack as return value
 	
-	lw	$s4, -28($fp)	# restore locally used registers
-	lw	$s3, -24($fp)
-	lw	$s2, -20($fp)
-	lw	$s1, -16($fp)
-	lw	$s0, -12($fp)
-	lw	$v0, -8($fp)	# restore static link
+	lw	$s4, -24($fp)	# restore locally used registers
+	lw	$s3, -20($fp)
+	lw	$s2, -16($fp)
+	lw	$s1, -12($fp)
+	lw	$s0, -8($fp)
 	lw	$ra, -4($fp)	# restore return adress
 	move	$sp, $fp	# get old frame pointer from current frame
 	lw	$fp, ($sp)	# restore old frame pointer
@@ -217,11 +215,10 @@ return:
 ###################################################################################################
 # Procedure to calculate the corresponding memory adress of a coordinate
 toMemAdress:
-	sw	$fp, 0($sp)	# push old frame pointer (dynamic link)
+	sw	$fp, ($sp)	# push old frame pointer (dynamic link)
 	move	$fp, $sp	# frame	pointer now points to the top of the stack 
-	subu	$sp, $sp, 12	# allocate 8 bytes on the stack
+	subu	$sp, $sp, 8	# allocate 8 bytes on the stack
 	sw	$ra, -4($fp)	# store the value of the return address
-	sw	$v0, -8($fp)	# static link
 	
 	la	$t0, width	# load the adress for "width" in memory
 	lw	$t1, ($t0)	# load width from "width" in memory
@@ -233,7 +230,6 @@ toMemAdress:
 	
 	add	$v1, $gp, $t0
 	
-	lw	$v0, -8($fp)	# restore static link
 	lw	$ra, -4($fp)	# restore return adress
 	move	$sp, $fp	# get old frame pointer from current frame
 	lw	$fp, ($sp)	# restore old frame pointer
@@ -245,13 +241,12 @@ toMemAdress:
 player_position:
 	sw	$fp, 0($sp)	# push old frame pointer (dynamic link)
 	move	$fp, $sp	# frame	pointer now points to the top of the stack
-	subu	$sp, $sp, 28	# allocate 24 bytes on the stack
+	subu	$sp, $sp, 24	# allocate 24 bytes on the stack
 	sw	$ra, -4($fp)	# store the value of the return address
-	sw	$v0, -8($fp)	# static link
-	sw	$s0, -12($fp)	# save locally used registers
-	sw	$s1, -16($fp)
-	sw	$s2, -20($fp)
-	sw	$s3, -24($fp)
+	sw	$s0, -8($fp)	# save locally used registers
+	sw	$s1, -12($fp)
+	sw	$s2, -16($fp)
+	sw	$s3, -20($fp)
 	
 	lw	$s0, 4($fp)	# load player row to $s0
 	lw	$s1, 8($fp)	# load player column to $s1
@@ -304,18 +299,17 @@ player_position_return:
 ###################################################################################################
 # Procedure to
 main_game:
-	sw	$fp, 0($sp)	# push old frame pointer (dynamic link)
+	sw	$fp, ($sp)	# push old frame pointer (dynamic link)
 	move	$fp, $sp	# frame	pointer now points to the top of the stack
-	subu	$sp, $sp, 40	# allocate 36 bytes on the stack
+	subu	$sp, $sp, 26	# allocate 36 bytes on the stack
 	sw	$ra, -4($fp)	# store the value of the return address
-	sw	$v0, -8($fp)	# static link
-	sw	$s0, -12($fp)	# save locally used registers
-	sw	$s1, -16($fp)
-	sw	$s2, -20($fp)
-	sw	$s3, -24($fp)
-	sw	$s4, -28($fp)
-	sw	$s5, -32($fp)
-	sw	$s6, -36($fp)
+	sw	$s0, -8($fp)	# save locally used registers
+	sw	$s1, -12($fp)
+	sw	$s2, -16($fp)
+	sw	$s3, -20($fp)
+	sw	$s4, -24($fp)
+	sw	$s5, -28($fp)
+	sw	$s6, -32($fp)
 	
 	li	$s0, 0xffff0000	# load input status adress to $s0
 	li	$s1, 0xffff0004	# load input adress to $s1
