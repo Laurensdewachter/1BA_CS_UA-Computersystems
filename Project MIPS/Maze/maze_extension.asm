@@ -1,6 +1,6 @@
 # Using WASD keyboard setup
 .data
-fin:	.asciiz "/home/laurens/Desktop/Systemen/Project MIPS/Maze/input.txt"
+fin:	.asciiz "/home/laurens/Desktop/Systemen/Project MIPS/Maze/input3.txt"
 	.align 2
 finw:	.asciiz "C:/Users/Laurens/Documents/UA/Informatica/SEM1/CSA/Systemen/Project MIPS/Maze/input2.txt"
 	.align 2
@@ -8,6 +8,8 @@ buffer:	.space 2048
 width:	.space 4
 end:	.space 8
 victory_msg:	.asciiz "Victory!"
+	.align 2
+visited:.space 2048
 
 .globl main
 
@@ -25,7 +27,7 @@ main:
 	
 	jal	create
 	
-	jal	automation
+	jal	dfs
 	
 	li	$v0, 10		# system call for returning to os
 	syscall
@@ -35,14 +37,13 @@ main:
 create:
 	sw	$fp, ($sp)	# push old frame pointer (dynamic link)
 	move	$fp, $sp	# frame	pointer now points to the top of the stack
-	subu	$sp, $sp, 32	# allocate 28 bytes on the stack
+	subu	$sp, $sp, 28	# allocate 28 bytes on the stack
 	sw	$ra, -4($fp)	# store the value of the return address
-	sw	$v0, -8($fp)	# static link
-	sw	$s0, -12($fp)	# save locally used registers
-	sw	$s1, -16($fp)
-	sw	$s2, -20($fp)
-	sw	$s3, -24($fp)
-	sw	$s4, -28($fp)
+	sw	$s0, -8($fp)	# save locally used registers
+	sw	$s1, -12($fp)
+	sw	$s2, -16($fp)
+	sw	$s3, -20($fp)
+	sw	$s4, -24($fp)
 
 # Procedure to read a file
 read_file:
@@ -202,12 +203,11 @@ return:
 	sw	$s3, 8($fp)	# Store player position column on stack as return value
 	sw	$s4, 4($fp)	# Store player position row on stack as return value
 	
-	lw	$s4, -28($fp)	# restore locally used registers
-	lw	$s3, -24($fp)
-	lw	$s2, -20($fp)
-	lw	$s1, -16($fp)
-	lw	$s0, -12($fp)
-	lw	$v0, -8($fp)	# restore static link
+	lw	$s4, -24($fp)	# restore locally used registers
+	lw	$s3, -20($fp)
+	lw	$s2, -16($fp)
+	lw	$s1, -12($fp)
+	lw	$s0, -8($fp)
 	lw	$ra, -4($fp)	# restore return adress
 	move	$sp, $fp	# get old frame pointer from current frame
 	lw	$fp, ($sp)	# restore old frame pointer
@@ -221,7 +221,6 @@ toMemAdress:
 	move	$fp, $sp	# frame	pointer now points to the top of the stack 
 	subu	$sp, $sp, 12	# allocate 8 bytes on the stack
 	sw	$ra, -4($fp)	# store the value of the return address
-	sw	$v0, -8($fp)	# static link
 	
 	la	$t0, width	# load the adress for "width" in memory
 	lw	$t1, ($t0)	# load width from "width" in memory
@@ -233,7 +232,6 @@ toMemAdress:
 	
 	add	$v1, $gp, $t0
 	
-	lw	$v0, -8($fp)	# restore static link
 	lw	$ra, -4($fp)	# restore return adress
 	move	$sp, $fp	# get old frame pointer from current frame
 	lw	$fp, ($sp)	# restore old frame pointer
@@ -245,13 +243,12 @@ toMemAdress:
 player_position:
 	sw	$fp, ($sp)	# push old frame pointer (dynamic link)
 	move	$fp, $sp	# frame	pointer now points to the top of the stack
-	subu	$sp, $sp, 28	# allocate 24 bytes on the stack
+	subu	$sp, $sp, 24	# allocate 24 bytes on the stack
 	sw	$ra, -4($fp)	# store the value of the return address
-	sw	$v0, -8($fp)	# static link
-	sw	$s0, -12($fp)	# save locally used registers
-	sw	$s1, -16($fp)
-	sw	$s2, -20($fp)
-	sw	$s3, -24($fp)
+	sw	$s0, -8($fp)	# save locally used registers
+	sw	$s1, -12($fp)
+	sw	$s2, -16($fp)
+	sw	$s3, -20($fp)
 	
 	lw	$s0, 4($fp)	# load player row to $s0
 	lw	$s1, 8($fp)	# load player column to $s1
@@ -290,11 +287,10 @@ invalid_move:
 	move	$v1, $s1	# load the current player column to $v0
 
 player_position_return:
-	lw	$s4, -28($fp)	# restore locally used registers
-	lw	$s3, -24($fp)
-	lw	$s2, -20($fp)
-	lw	$s1, -16($fp)
-	lw	$s0, -12($fp)
+	lw	$s3, -20($fp)	# restore locally used registers
+	lw	$s2, -16($fp)
+	lw	$s1, -12($fp)
+	lw	$s0, -8($fp)
 	lw	$ra, -4($fp)	# restore return adress
 	move	$sp, $fp	# get old frame pointer from current frame
 	lw	$fp, ($sp)	# restore old frame pointer
@@ -303,21 +299,140 @@ player_position_return:
 
 ###################################################################################################
 # Procedure to automaticaly find the exit
-automation:
+dfs:
 	sw	$fp, ($sp)	# push old frame pointer (dynamic link)
 	move	$fp, $sp	# frame	pointer now points to the top of the stack
+	subu	$sp, $sp, 36	# allocate 32 bytes on the stack
 	sw	$ra, -4($fp)	# store the value of the return address
-	sw	$v0, -8($fp)	# static link
-	sw	$s0, -12($fp)	# save locally used registers
-	sw	$s1, -16($fp)
+	sw	$s0, -8($fp)	# save locally used registers
+	sw	$s1, -12($fp)
+	sw	$s2, -16($fp)
+	sw	$s3, -20($fp)
+	sw	$s4, -24($fp)
+	sw	$s5, -28($fp)
+	sw	$s6, -32($fp)
 
+	lw	$s0, 4($fp)	# load the current row to $s0
+	lw	$s1, 8($fp)	# load the current column to $s1
+	
+	la	$t0, end	# load adress of end location
+	lw	$s2, ($t0)	# load end row
+	lw	$s3, 4($t0)	# load end column
+	
+	la	$t0, visited	# load the adress of the visited locations
+	li	$t1, -1		# store a value different from 0 in the first space to prevent the if statement later in the procedure drom failing on the first pass
+	sw	$t1, ($t0)	# this number is -1 so that it doesn't get recognized as a genuine location
 
+check_victory:
+	seq	$t0, $s0, $s2	# compare player row to end row
+	seq	$t1, $s1, $s3	# compare player column to end column
+	add	$t0, $t0, $t1
+	beq	$t0, 2, victory
+	j	for_setup
 
+victory:
+	li	$v0, 4		# load print string syscall value
+	la	$a0, victory_msg
+	syscall
+	j	dfs_end
 
+for_setup:
+	li	$t0, 0		# set up a counter in $t0
+for:
+	beq	$t0, 0, for1	# check if this is the first time the procedure runs the for loop
+	beq	$t0, 1, for2	# check if this is the second time
+	beq	$t0, 2, for3	# check if this is the thirth time
+	j	for4		# it has to be the fourth time
+	
+for1:
+	move	$s4, $s0	# store the current player row to $s4
+	subu	$s4, $s4, 1	# create a new location
+	move	$s5, $s1	# store the current player column to $s5
+	
+	j	check_visited
 
+for2:
+	move	$s4, $s0	# store the current player row to $s4
+	addi	$s4, $s4, 1	# create a new location
+	move	$s5, $s1	# store the current player column to $s5
+	
+	j	check_visited
 
+for3:
+	move	$s4, $s0	# store the current player row to $s4
+	move	$s5, $s1	# store the current player column to $s5
+	subu	$s5, $s5, 1	# create a new location
+	
+	j	check_visited
 
+for4:
+	move	$s4, $s0	# store the current player row to $s4
+	move	$s5, $s1	# store the current player column to $s5
+	addi	$s5, $s5, 1	# create a new location
+	
+	j	check_visited
+	
+check_visited:
+	addi	$t0, $t0, 1	# update the counter
+	
+	la	$t1, visited	# load the adress of the space containing the visited locations
+	lw	$t2, ($t1)	# load the first visited row
+	lw	$t3, 4($t1)	# load the first visited column
 
+check_visited_loop:
+	seq	$t4, $t2, 0	# check if both spaces are 0
+	seq	$t5, $t3, 0
+	add	$t4, $t4, $t5
+	beq	$t4, 2, check_visited_ok	# the new location hasn't been visited before
+	
+	seq	$t4, $t2, $s4	# check if the new location is equal to the one currently loaded from the visited locations
+	seq	$t5, $t3, $s5
+	add	$t4, $t4, $t5
+	beq	$t4, 2, last_update
+	
+	addi	$t1, $t1, 8	# move the visited locations "pointer" to the next location
+	lw	$t2, ($t1)	# load the next visited row
+	lw	$t3, 4($t1)	# load the next visited column
+	
+check_visited_ok:
+	move	$s6, $t2	# keep the last empty space in visited in $s6
 
+	subu	$sp, $sp, 16	# allocate 16 byte on the stack
+	sw	$s0, 4($sp)	# push the current player row on the stack
+	sw	$s1, 8($sp)	# push the current player column on the stack
+	sw	$s4, 12($sp)	# push the updated player row on the stack
+	sw	$s5, 16($sp)	# push the updated player column on the stack
+	
+	jal	player_position	# update the players position
+	
+	seq	$t1, $s0, $v0	# check if the new location is equal to the current location
+	seq	$t2, $s1, $v1
+	add	$t1, $t1, $t2
+	beq	$t1, 2, for	# go to the next instance in the for loop
+	
+	subu	$sp, $sp, 8	# allocate 8 byte on the stack
+	sw	$v0, 4($sp)	# push the updated player row to the stack
+	sw	$v1, 8($sp)	# push the updated player column to the stack
+	
+	sw	$s4, ($s6)	# store the neq player row and column in the visited array
+	sw	$s5, 4($s6)
+	
+	jal	dfs
+	
+last_update:
+	subu	$sp, $sp, 16	# allocate 16 bytes on the stack
+	sw	$v0, 4($sp)	# push the updated player row to the stack
+	sw	$v1, 8($fp)	# push the updated player column to the stack
+	sw	$s0, 12($fp)	# push the old (or current) player row to the stack
+	sw	$s1, 16($fp)	# push the old (or current) player column to the stack
 
-
+dfs_end:
+	lw	$s3, -20($fp)	# restore locally used registers
+	lw	$s2, -16($fp)
+	lw	$s1, -12($fp)
+	lw	$s0, -8($fp)
+	lw	$ra, -4($fp)	# restore return adress
+	move	$sp, $fp	# get old frame pointer from current frame
+	lw	$fp, ($sp)	# restore old frame pointer
+	jr	$ra
+###################################################################################################
