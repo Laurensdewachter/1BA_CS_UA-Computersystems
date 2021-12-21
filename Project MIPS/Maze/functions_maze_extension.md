@@ -33,7 +33,7 @@
     12($fp): new player row
     16($fp): new player column
 
-**main_game**
+**automation**
 > Return Values:
     None
 
