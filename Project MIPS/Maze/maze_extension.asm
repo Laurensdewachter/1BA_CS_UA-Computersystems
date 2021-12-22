@@ -7,9 +7,8 @@ finw:	.asciiz "C:/Users/Laurens/Documents/UA/Informatica/SEM1/CSA/Systemen/Proje
 buffer:	.space 2048
 width:	.space 4
 end:	.space 8
-victory_msg:	.asciiz "Victory!"
-	.align 2
 visited:.space 2048
+victory_msg:	.asciiz "Victory!"
 
 .globl main
 
@@ -230,7 +229,7 @@ toMemAdress:
 	sll	$t2, $a1, 2	# multiply the column by 4
 	add	$t0, $t0, $t2	# add the column
 	
-	add	$v1, $gp, $t0
+	add	$v0, $gp, $t0
 	
 	lw	$ra, -4($fp)	# restore return adress
 	move	$sp, $fp	# get old frame pointer from current frame
@@ -262,12 +261,12 @@ check_possibility:
 	jal	toMemAdress	# call toMemAdress procedure
 	
 	li	$t0, 0x0000FF	# load the colour blue to $t0
-	lw	$t1, ($v1)	# load the colour at the new player location
-	beq	$t0, $t1 invalid_move	# if the new location is blue (wall) the move is invalid
+	lw	$t1, ($v0)	# load the colour at the new player location
+	beq	$t0, $t1, invalid_move	# if the new location is blue (wall) the move is invalid
 	
 move_player:
 	li	$t0, 0xFFFF00	# load yellow to $t0
-	sw	$t0, ($v1)	# store yellow at the new player loaction memory adress
+	sw	$t0, ($v0)	# store yellow at the new player loaction memory adress
 	
 	move	$a0, $s0	# load old player row for toMemAdress
 	move	$a1, $s1	# load old player column for toMemAdress
@@ -275,7 +274,7 @@ move_player:
 	jal	toMemAdress	# call toMemAdress procedure
 	
 	li	$t0, 0x000000	# load black to $t0
-	sw	$t0, ($v1)	# make to old player position black
+	sw	$t0, ($v0)	# make to old player position black
 	
 	move	$v0, $s2	# store the new player row in $v0
 	move	$v1, $s3	# store the new player column in $v1
@@ -318,10 +317,6 @@ dfs:
 	la	$t0, end	# load adress of end location
 	lw	$s2, ($t0)	# load end row
 	lw	$s3, 4($t0)	# load end column
-	
-	la	$t0, visited	# load the adress of the visited locations
-	li	$t1, -1		# store a value different from 0 in the first space to prevent the if statement later in the procedure drom failing on the first pass
-	sw	$t1, ($t0)	# this number is -1 so that it doesn't get recognized as a genuine location
 
 check_victory:
 	seq	$t0, $s0, $s2	# compare player row to end row
@@ -388,14 +383,16 @@ check_visited_loop:
 	seq	$t4, $t2, $s4	# check if the new location is equal to the one currently loaded from the visited locations
 	seq	$t5, $t3, $s5
 	add	$t4, $t4, $t5
-	beq	$t4, 2, last_update
+	beq	$t4, 2, for
 	
 	addi	$t1, $t1, 8	# move the visited locations "pointer" to the next location
 	lw	$t2, ($t1)	# load the next visited row
 	lw	$t3, 4($t1)	# load the next visited column
 	
+	j	check_visited_loop
+	
 check_visited_ok:
-	move	$s6, $t2	# keep the last empty space in visited in $s6
+	move	$s6, $t1	# keep the last empty space in visited in $s6
 
 	subu	$sp, $sp, 16	# allocate 16 byte on the stack
 	sw	$s0, 4($sp)	# push the current player row on the stack
@@ -405,26 +402,39 @@ check_visited_ok:
 	
 	jal	player_position	# update the players position
 	
-	seq	$t1, $s0, $v0	# check if the new location is equal to the current location
-	seq	$t2, $s1, $v1
-	add	$t1, $t1, $t2
-	beq	$t1, 2, for	# go to the next instance in the for loop
+	move	$t1, $v0	# keep the updated player row in $t1
+	move	$t2, $v1	# keep the updated player column in $t1
+	
+	li	$v0, 32		# sleep
+	li	$a0, 1000
+	syscall
+	
+	seq	$t3, $s0, $t1	# check if the new location is equal to the current location
+	seq	$t4, $s1, $t2
+	add	$t3, $t3, $t4
+	beq	$t3, 2, last_update
 	
 	subu	$sp, $sp, 8	# allocate 8 byte on the stack
 	sw	$v0, 4($sp)	# push the updated player row to the stack
 	sw	$v1, 8($sp)	# push the updated player column to the stack
 	
-	sw	$s4, ($s6)	# store the neq player row and column in the visited array
+	sw	$s4, ($s6)	# store the new player row and column in the visited array
 	sw	$s5, 4($s6)
 	
 	jal	dfs
 	
 last_update:
 	subu	$sp, $sp, 16	# allocate 16 bytes on the stack
-	sw	$v0, 4($sp)	# push the updated player row to the stack
-	sw	$v1, 8($fp)	# push the updated player column to the stack
-	sw	$s0, 12($fp)	# push the old (or current) player row to the stack
-	sw	$s1, 16($fp)	# push the old (or current) player column to the stack
+	sw	$t1, 4($sp)	# push the updated player row to the stack
+	sw	$t2, 8($sp)	# push the updated player column to the stack
+	sw	$s0, 12($sp)	# push the old (or current) player row to the stack
+	sw	$s1, 16($sp)	# push the old (or current) player column to the stack
+	
+	jal	player_position
+	
+	li	$v0, 32		# sleep
+	li	$a0, 1000
+	syscall
 
 dfs_end:
 	lw	$s3, -20($fp)	# restore locally used registers
