@@ -2,7 +2,7 @@
 .data
 fin:	.asciiz "/home/laurens/Desktop/Systemen/Project MIPS/Maze/input3.txt"
 	.align 2
-finw:	.asciiz "C:/Users/Laurens/Documents/UA/Informatica/SEM1/CSA/Systemen/Project MIPS/Maze/input2.txt"
+finw:	.asciiz "C:/Users/Laurens/Documents/UA/Informatica/SEM1/CSA/Systemen/Project MIPS/Maze/input3.txt"
 	.align 2
 buffer:	.space 2048
 width:	.space 4
@@ -15,7 +15,7 @@ victory_msg:	.asciiz "Victory!"
 .text
 # Starting point
 main:
-	la 	$s0, fin	# load file name adress
+	la 	$s0, finw	# load file name adress
 	la 	$s1, buffer	# load buffer adress
 	li	$s2, 2048	# load buffer size
 	
@@ -218,7 +218,7 @@ return:
 toMemAdress:
 	sw	$fp, ($sp)	# push old frame pointer (dynamic link)
 	move	$fp, $sp	# frame	pointer now points to the top of the stack 
-	subu	$sp, $sp, 12	# allocate 8 bytes on the stack
+	subu	$sp, $sp, 8	# allocate 8 bytes on the stack
 	sw	$ra, -4($fp)	# store the value of the return address
 	
 	la	$t0, width	# load the adress for "width" in memory
@@ -255,6 +255,11 @@ player_position:
 	lw	$s3, 16($fp)	# load new column to $s3
 	
 check_possibility:
+	seq	$t0, $s0, $s2	# check if it is the same location
+	seq	$t1, $s1, $s3
+	add	$t0, $t0, $t1
+	beq	$t0, 2, invalid_move
+
 	move	$a0, $s2	# load new player row for toMemAdress
 	move	$a1, $s3	# load new player column for toMemAdress
 	
@@ -301,7 +306,7 @@ player_position_return:
 dfs:
 	sw	$fp, ($sp)	# push old frame pointer (dynamic link)
 	move	$fp, $sp	# frame	pointer now points to the top of the stack
-	subu	$sp, $sp, 36	# allocate 32 bytes on the stack
+	subu	$sp, $sp, 40	# allocate 40 bytes on the stack
 	sw	$ra, -4($fp)	# store the value of the return address
 	sw	$s0, -8($fp)	# save locally used registers
 	sw	$s1, -12($fp)
@@ -310,6 +315,7 @@ dfs:
 	sw	$s4, -24($fp)
 	sw	$s5, -28($fp)
 	sw	$s6, -32($fp)
+	sw	$s7, -36($fp)
 
 	lw	$s0, 4($fp)	# load the current row to $s0
 	lw	$s1, 8($fp)	# load the current column to $s1
@@ -332,11 +338,11 @@ victory:
 	j	dfs_end
 
 for_setup:
-	li	$t0, 0		# set up a counter in $t0
+	li	$s7, 0		# set up a counter in $t0
 for:
-	beq	$t0, 0, for1	# check if this is the first time the procedure runs the for loop
-	beq	$t0, 1, for2	# check if this is the second time
-	beq	$t0, 2, for3	# check if this is the thirth time
+	beq	$s7, 0, for1	# check if this is the first time the procedure runs the for loop
+	beq	$s7, 1, for2	# check if this is the second time
+	beq	$s7, 2, for3	# check if this is the thirth time
 	j	for4		# it has to be the fourth time
 	
 for1:
@@ -368,7 +374,7 @@ for4:
 	j	check_visited
 	
 check_visited:
-	addi	$t0, $t0, 1	# update the counter
+	addi	$s7, $s7, 1	# update the counter
 	
 	la	$t1, visited	# load the adress of the space containing the visited locations
 	lw	$t2, ($t1)	# load the first visited row
@@ -406,7 +412,7 @@ check_visited_ok:
 	move	$t2, $v1	# keep the updated player column in $t1
 	
 	li	$v0, 32		# sleep
-	li	$a0, 1000
+	li	$a0, 60
 	syscall
 	
 	seq	$t3, $s0, $t1	# check if the new location is equal to the current location
@@ -414,9 +420,13 @@ check_visited_ok:
 	add	$t3, $t3, $t4
 	beq	$t3, 2, last_update
 	
+	li	$v0, 32		# sleep
+	li	$a0, 500
+	syscall
+	
 	subu	$sp, $sp, 8	# allocate 8 byte on the stack
-	sw	$v0, 4($sp)	# push the updated player row to the stack
-	sw	$v1, 8($sp)	# push the updated player column to the stack
+	sw	$t1, 4($sp)	# push the updated player row to the stack
+	sw	$t2, 8($sp)	# push the updated player column to the stack
 	
 	sw	$s4, ($s6)	# store the new player row and column in the visited array
 	sw	$s5, 4($s6)
@@ -432,12 +442,14 @@ last_update:
 	
 	jal	player_position
 	
-	li	$v0, 32		# sleep
-	li	$a0, 1000
-	syscall
+	j	for
 
 dfs_end:
-	lw	$s3, -20($fp)	# restore locally used registers
+	lw	$s7, -36($fp)	# restore locally used registers
+	lw	$s6, -32($fp)
+	lw	$s5, -28($fp)
+	lw	$s4, -24($fp)
+	lw	$s3, -20($fp)
 	lw	$s2, -16($fp)
 	lw	$s1, -12($fp)
 	lw	$s0, -8($fp)
