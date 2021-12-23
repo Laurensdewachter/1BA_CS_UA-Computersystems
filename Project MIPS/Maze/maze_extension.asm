@@ -2,7 +2,7 @@
 .data
 fin:	.asciiz "/home/laurens/Desktop/Systemen/Project MIPS/Maze/input3.txt"
 	.align 2
-finw:	.asciiz "C:/Users/Laurens/Documents/UA/Informatica/SEM1/CSA/Systemen/Project MIPS/Maze/input3.txt"
+finw:	.asciiz "C:/Users/Laurens/Documents/UA/Informatica/SEM1/CSA/Systemen/Project MIPS/Maze/input2.txt"
 	.align 2
 buffer:	.space 2048
 width:	.space 4
@@ -335,6 +335,7 @@ victory:
 	li	$v0, 4		# load print string syscall value
 	la	$a0, victory_msg
 	syscall
+	li	$v0, 1		# indicate that the answer has been found
 	j	dfs_end
 
 for_setup:
@@ -343,7 +344,8 @@ for:
 	beq	$s7, 0, for1	# check if this is the first time the procedure runs the for loop
 	beq	$s7, 1, for2	# check if this is the second time
 	beq	$s7, 2, for3	# check if this is the thirth time
-	j	for4		# it has to be the fourth time
+	beq	$s7, 3, for4	# check if this is the fourth time
+	j	dfs_end
 	
 for1:
 	move	$s4, $s0	# store the current player row to $s4
@@ -408,35 +410,33 @@ check_visited_ok:
 	
 	jal	player_position	# update the players position
 	
-	move	$t1, $v0	# keep the updated player row in $t1
-	move	$t2, $v1	# keep the updated player column in $t1
+	move	$s2, $v0	# keep the updated player row in $t1
+	move	$s3, $v1	# keep the updated player column in $t1
+	
+	seq	$t3, $s0, $s2	# check if the new location is equal to the current location
+	seq	$t4, $s1, $s3
+	add	$t3, $t3, $t4
+	beq	$t3, 2, last_update
 	
 	li	$v0, 32		# sleep
 	li	$a0, 60
 	syscall
 	
-	seq	$t3, $s0, $t1	# check if the new location is equal to the current location
-	seq	$t4, $s1, $t2
-	add	$t3, $t3, $t4
-	beq	$t3, 2, last_update
-	
-	li	$v0, 32		# sleep
-	li	$a0, 500
-	syscall
-	
 	subu	$sp, $sp, 8	# allocate 8 byte on the stack
-	sw	$t1, 4($sp)	# push the updated player row to the stack
-	sw	$t2, 8($sp)	# push the updated player column to the stack
+	sw	$s2, 4($sp)	# push the updated player row to the stack
+	sw	$s3, 8($sp)	# push the updated player column to the stack
 	
-	sw	$s4, ($s6)	# store the new player row and column in the visited array
-	sw	$s5, 4($s6)
+	sw	$s2, ($s6)	# store the new player row and column in the visited array
+	sw	$s3, 4($s6)
 	
 	jal	dfs
 	
+	beq	$v0, 1 dfs_end	# the end has been reached
+	
 last_update:
 	subu	$sp, $sp, 16	# allocate 16 bytes on the stack
-	sw	$t1, 4($sp)	# push the updated player row to the stack
-	sw	$t2, 8($sp)	# push the updated player column to the stack
+	sw	$s2, 4($sp)	# push the updated player row to the stack
+	sw	$s3, 8($sp)	# push the updated player column to the stack
 	sw	$s0, 12($sp)	# push the old (or current) player row to the stack
 	sw	$s1, 16($sp)	# push the old (or current) player column to the stack
 	

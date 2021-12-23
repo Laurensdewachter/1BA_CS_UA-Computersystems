@@ -38,5 +38,5 @@
     None
 
 > Arguments:
-    4($fp): first player row
-    8($fp): first player column
+    4($fp): current player row
+    8($fp): current player column
